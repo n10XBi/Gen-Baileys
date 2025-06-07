@@ -538,13 +538,21 @@ export const makeSocket = (config: SocketConfig) => {
         }))
     }
 
-    const requestPairingCode = async (phoneNumber: string, customName = 'GENTADEV') => {
-        authState.creds.pairingCode = bytesToCrockford(randomBytes(5))
+    const requestPairingCode = async (phoneNumber: string, pairKey ? : string): Promise < string > => {
+        // Jika pairKey disediakan, gunakan itu. Jika tidak, buat kode acak.
+        // Menambahkan .replace() untuk menghapus spasi dan .toUpperCase() untuk konsistensi format.
+        authState.creds.pairingCode = pairKey ?
+            pairKey.replace(/ /g, '').toUpperCase() :
+            bytesToCrockford(randomBytes(5));
+
+        // Set informasi pengguna. 'name' sebaiknya tetap placeholder seperti '~'.
         authState.creds.me = {
             id: jidEncode(phoneNumber, 's.whatsapp.net'),
-            name: customName
-        }
-        ev.emit('creds.update', authState.creds)
+            name: '~'
+        };
+
+        ev.emit('creds.update', authState.creds);
+
         await sendNode({
             tag: 'iq',
             attrs: {
@@ -588,9 +596,10 @@ export const makeSocket = (config: SocketConfig) => {
                     }
                 ]
             }]
-        })
-        return authState.creds.pairingCode
-    }
+        });
+
+        return authState.creds.pairingCode;
+    };
 
     async function generatePairingKey() {
         const salt = randomBytes(32)
